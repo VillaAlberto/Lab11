@@ -5,14 +5,21 @@
 package it.polito.tdp.rivers;
 
 import java.net.URL;
+import java.security.InvalidParameterException;
+import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.ResourceBundle;
 
 import it.polito.tdp.rivers.model.Model;
+import it.polito.tdp.rivers.model.River;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import jdk.javadoc.internal.doclets.toolkit.util.DocFileIOException.Mode;
 
 public class FXMLController {
 	
@@ -25,7 +32,7 @@ public class FXMLController {
     private URL location;
 
     @FXML // fx:id="boxRiver"
-    private ComboBox<?> boxRiver; // Value injected by FXMLLoader
+    private ComboBox<River> boxRiver; // Value injected by FXMLLoader
 
     @FXML // fx:id="txtStartDate"
     private TextField txtStartDate; // Value injected by FXMLLoader
@@ -60,7 +67,64 @@ public class FXMLController {
         assert txtResult != null : "fx:id=\"txtResult\" was not injected: check your FXML file 'Scene.fxml'.";
     }
     
+    @FXML
+    void doAggiorna(ActionEvent event) {
+    	try {
+			River fiume= boxRiver.getValue();
+			if (fiume==null)
+			{
+				txtResult.setText("Fiume non selezionato");
+				return;
+			}
+			txtStartDate.setText(model.getDataInizio(fiume).toString());
+			txtEndDate.setText(model.getDataFine(fiume).toString());
+			txtNumMeasurements.setText(String.valueOf(model.getNumeroMisurazioni(fiume)));
+			txtFMed.setText(String.format("%.3f", model.getMedia(fiume)));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+
+    @FXML
+    void doSimula(ActionEvent event) {
+    	try {
+    		River fiume= boxRiver.getValue();
+			if (fiume==null)
+			{
+				txtResult.setText("Fiume non selezionato");
+				return;
+			}
+			double k=-1;
+			k= Double.parseDouble(txtK.getText());
+    		if (k<0)
+    		{
+    			txtResult.setText("Valore di k non ammissibile");
+    			return;
+    		}
+    		
+    		model.simula(k, fiume);
+    		txtResult.setText(String.format("La capacità Q è %.3f\n", model.getQ()));
+    		txtResult.appendText(String.format("L'occupazione giornaliera media C è %.3f\n", model.getOccupazioneMedia()));
+    		txtResult.appendText(String.format("Giornate di carenza idrica: %d su un totale di %d ", model.getInsoddisfatti(), model.getGiorniTotali()));
+    		double media= model.getInsoddisfatti()*100/model.getGiorniTotali();
+    		txtResult.appendText(String.format("(%.2f", media));
+    		txtResult.appendText("%)");
+    		
+			
+			
+		}
+    	catch (InvalidParameterException e) {
+			// TODO: handle exception
+		}
+    	
+    	catch (Exception e) {
+		}
+    }
+    
     public void setModel(Model model) {
     	this.model = model;
+    	List<River> fiumi= model.getRivers();
+    	boxRiver.getItems().addAll(fiumi);
     }
 }
